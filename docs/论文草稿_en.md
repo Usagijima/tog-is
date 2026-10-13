@@ -2,7 +2,8 @@
 
 > Draft status: Introduction / Related Work / Setup / Method / Experimental Design finalized (2026-10-11).
 > All result sections have been updated to the final three-seed statistics (2026-10-12; seeds {17, 29, 43}; LLM and deterministic methods alike at n=720 per cell).
-> Only remaining experiment: the LLM-side receipt swap (the deterministic-receiver version is complete across three seeds).
+> All preregistered experiments are complete (EXP-001~035, including the LLM-side omission gap and the Section 14.4 stress tests).
+> Code and data are public at the anonymized mirror https://anonymous.4open.science/r/tog-is-84A1/ (private GitHub repo `tog-is`, to be made public upon acceptance).
 > Target: AAAI-27 Workshop (submission ~2026-11-20).
 
 ---
