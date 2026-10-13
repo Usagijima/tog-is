@@ -1,0 +1,132 @@
+# ============================================================
+# 预注册文件（preregistration.yaml）
+# 依据：方案 3.md 附录 B + 实验记录 EXP-001 ~ EXP-005 的实际环境
+# 冻结日期：2026-10-04
+#
+# 【重要】本文件在测试冻结前可修订（仅允许基于开发/验证集的决策），
+# 冻结后任何改动都必须新开一条实验记录并说明理由。
+# ============================================================
+
+study_status: environment_ready_not_frozen   # 环境就绪，测试协议尚未冻结
+as_of: "2026-10-04"
+
+# ---------- 与方案附录 B 一致的部分 ----------
+domains: [information_systems, marketing]
+
+data:
+  retail: UCI_352_Online_Retail
+  bank: UCI_222_bank_full_csv
+  license: CC_BY_4_0
+  split: [0.60, 0.20, 0.20]
+  test_blocks_per_dataset: 10
+  cohorts_per_episode: 8
+  metrics_per_cohort: 3
+  min_rows_per_cohort: 30
+  metric_quantization: 0.0001
+  split_seed: 17
+
+game:
+  agents: 3
+  action_cardinality: [1, 2]
+  weights: permutations_of_[0.5,0.3,0.2]
+  initial_facts_per_agent: 2
+  main_conditions: [cooperative, departmental, scripted_selective]   # C / S / A
+  primary_epsilon: 0.05
+  disclosure_cost_checkpoints: [6, 12, 18, 24]
+  query_permissions: same_for_all_methods
+  primary_access_mode: standing_authorized_read_only_audits
+
+# ---------- 与方案有偏差的部分（EXP-005 决策，须在论文中如实披露）----------
+compute:
+  # 方案原文：RTX 5090 32GB + vLLM + BF16
+  # 实际：RTX 5060 8GB + LM Studio Bionic(llama.cpp) + GGUF Q4_K_M
+  gpu_count: 1
+  gpu: RTX_5060_8GB                      # 偏差①：非 5090，已按 20.4 节完成容量验证
+  inference_backend: llama_cpp_via_lmstudio_bionic   # 偏差②：vLLM 无 Windows 包
+  backend_start_command: "lms server start --port 8000"
+  model_served_name: qwen3-4b-instruct-2507
+  primary_model: Qwen/Qwen3-4B-Instruct-2507-GGUF-Q4_K_M   # 偏差③：4bit 量化版
+  model_precision: 4bit_AWQ_equivalent_GGUF
+  finetuning: false
+  external_llm_judge: false
+  human_annotation: false
+  decoding_seeds: [17, 29, 43]
+  max_trajectory_output_tokens: 1536
+  max_trajectory_input_tokens: 12288
+  max_logical_trajectories: 20000
+  measured_smoke_test:                     # EXP-005 实测（正式实验前须用真实负载复测）
+    concurrent_4_token_s: 64.7
+    est_gpu_hours_full: 231
+    budget_gpu_hours: 400
+    verdict: feasible_no_downscale         # 240 任务规模不降档
+
+# ---------- 待冻结项（Day 8-10 用开发/验证集确定后填入）----------
+pending_decisions:
+  temperature: 0.2          # 方案建议值，待开发集确认
+  top_p: 0.9
+  strongest_baseline: null  # 只能用验证集选定，禁止用测试集选对手
+  prompts:
+    sas_tool: FROZEN_v3_2026-10-08   # step10_llm.py SYS_PROMPT；冻结依据 EXP-008c/d
+    sas_tool_freeze_criteria: 4个开发任务解析失败0 + 无兜底 + token健康
+    sas_tool_dev_performance: "后悔 0.0502/0.1258/0.1890/0.0766（基线行为不继续调优，保留真实局限）"
+    sas_sc: FROZEN_2026-10-08        # 冻结依据 EXP-009；与 sas_tool 共用提示词（v3）
+    sas_sc_params: {k: 5, temp: 0.7, tie_break: min_group_id, non_answer_excluded: true,
+                    info_sharing: 查询只跑一条轨迹，仅最终决策采样}
+    sas_sc_freeze_reason: 标准SC取值；开发集n=4单次跑无法分辨方法效应与随机摆动，不按开发集调参
+    sc_dev_observation: "高温采样4/4任务偏向披露诱导选项[1]，贪心轨迹偏[4]；待正式实验重复轨迹检验"
+    others: null            # MAS / Exchange 见下
+    mas_deliberate: FROZEN_v1_2026-10-09   # step11_mas.py DEPT_PROMPT+协调者；冻结依据 EXP-010
+    mas_dev_performance: "4任务解析失败0/兜底0/tok≤1330；平均后悔0.1542，4/4选[1]；锚定初始披露、否决发现真相的部门、谎报共识"
+    exchange_then_decide: FROZEN_v1_2026-10-09  # step12_exchange.py；冻结依据 EXP-011
+    etd_dev_performance: "4任务解析失败0/兜底0/tok≤1032；平均后悔0.1542；反对轮形式化（反对但替代仍[1]）"
+    llm_methods_note: 全部刻意不调优行为——失败模式是研究对象
+    disclosure_cs: FROZEN_v1_2026-10-09   # step13 C/S 披露提示词；合法性由校验层强制；兜底=A脚本
+    disclosure_freeze_criteria: 12/12次LLM生成合法（恰好2项+本部门列+收据绑定）
+    e0_sharing: step13 生成一次落盘 disclosures.jsonl；接收方法 --e0 --cond --seed 读取（方案 14.2）
+
+  formal_repeats:              # EXP-013 定案
+    llm_methods_seeds: [17, 29, 43]     # 每个 任务×条件×方法 跑 3 条轨迹
+    deterministic_methods: single_pass  # 方案 15.2：不重复三次伪造方差
+    scale: {tasks: 240, conditions: [C, S, A], llm_trajectories: 8640,
+            deterministic_trajectories: 2880, e0_generation_calls: 4320}
+    budget_check: 正式开跑前用真实负载复测 GPU 小时（EXP-005 估算 231h/400h）
+  wsl2_vllm_formal_env: null  # 计划：正式实验前尝试 WSL2+vLLM，若成功则替换后端并重新测预算
+
+statistics:
+  primary_budget: 12
+  primary_conditions: [departmental, scripted_selective]
+  primary_metric: mean_true_organizational_regret
+  min_effect_abs: 0.02      # 有业务解释的最小效应（方案 18.3 节）
+  clustering: source_data_block
+  confidence_interval: 0.95
+  multiple_comparison: Holm
+
+# ---------- 诚实性声明 ----------
+integrity:
+  oracle_fields_in_episodes: [eval_only_optimal_actions, eval_only_optimal_score]
+  oracle_policy: 绝不允许进入任何在线协调流程或 LLM 上下文
+  deviations_disclosed: [gpu, backend, model_precision]
+  no_results_prefilled: true
+
+# ---------- 执行记录（追加于 2026-10-11；实验日志见 实验记录.md EXP-014~026）----------
+execution_record:
+  date: 2026-10-11
+  status: seed17_complete_seeds29_43_running
+  completed:
+    e0_generation: "2,160/2,160（240任务×A/C/S×3种子；C 100%真LLM，S 94.7%真LLM+5.3%留痕兜底）"
+    llm_formal_seed17: "2,880/2,880 审计全过（A/C/S × 4方法 × 240任务）"
+    deterministic_formal: "15,120行（6方法×3条件×B=6/12/18/24，共享E0 seed17，step8 --formal）"
+    epsilon_sweep: "60,480行（7档ε×3证书方法×240×3条件；认证违规=0）"
+    min_cost_oracle: "960行（MILP精确解；口径一任意可认证行动C*≈9.9，口径二认证最优行动≈10.0-10.2；CostRatio≈1.18）"
+  deviations:
+    - "GPU：方案假设 RTX 5090，实际 RTX 5060 8GB → 模型从 14B 降级为 Qwen3-4B-Instruct-2507 Q4_K_M（已登记于 integrity.deviations_disclosed）"
+    - "后端：LM Studio/Bionic 替代 vLLM（Windows 原生 Python 3.14 无 vLLm 发行版）；wsl2_vllm_formal_env 作废"
+    - "统计口径：种子17阶段不做跨种子结论；Holm 校正后无显著差异已如实报告（EXP-023）"
+  lessons_logged:
+    - "EXP-017：token预算属于单条轨迹，共享客户端会中毒；生成端每次调用新建客户端"
+    - "EXP-023：所有显著性必须做多重比较校正后再下结论"
+    - "EXP-025：子集枚举上限太低会系统性漏解；正式版用 MILP（scipy.optimize.milp/HiGHS）精确求解"
+  pending:
+    - "种子29/43批（run_seeds.bat，约60h）→ 重跑 step15_summary.py 出最终统计"
+    - "压力测试128条（方案14.4）与LLM收据替换（step20留口）待服务器空档"
+    - "论文英文翻译与投稿（Workshop 截止约2026-11-20）"

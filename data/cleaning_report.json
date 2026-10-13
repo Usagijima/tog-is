@@ -1,0 +1,25 @@
+{
+  "retail": {
+    "raw_rows": 541909,
+    "isolated_quantity_zero": 0,
+    "isolated_nonpositive_price": 2517,
+    "isolated_unparseable_fields": 0,
+    "cancel_flag_mismatch_rows": 0,
+    "mismatch_cancel_flag_only": 0,
+    "mismatch_negative_qty_only": 0,
+    "exact_duplicate_rows_kept": 5263,
+    "rows_missing_customer_id": 132603,
+    "clean_rows": 539392
+  },
+  "bank": {
+    "raw_rows": 45211,
+    "raw_columns": 17,
+    "isolated_invalid_label": 0,
+    "isolated_unparseable_numeric": 0,
+    "unknown_count_job": 288,
+    "unknown_count_education": 1857,
+    "unknown_count_contact": 13020,
+    "exact_duplicate_rows_grouped": 0,
+    "clean_rows": 45211
+  }
+}

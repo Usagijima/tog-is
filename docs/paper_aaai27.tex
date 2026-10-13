@@ -1,0 +1,258 @@
+% =====================================================================
+%  Not Every Truth Is Enough: Decision-Certified Multi-Agent Collaboration
+%  under Strategic Omission  —  AAAI-27 Workshop 投稿稿
+%
+%  编译方法：
+%  1. 从 AAAI 官网下载 AAAI-27 Author Kit（含 aaai27.sty / aaai27.bst）
+%  2. 把 aaai27.sty 放到本文件同一目录
+%  3. pdflatex paper_aaai27 （两遍）
+%  本稿参考文献已内嵌（thebibliography），不依赖 .bst 即可编译；
+%  定稿时可按官方 kit 要求切换到 aaai27.bst。
+%  图片：默认从 week1/analysis/ 读取（\graphicspath 已设置）；
+%  找不到时显示占位框，不影响编译。
+%  页数限制： Workshop 通知为准（通常正文 4~7 页 + 参考文献）。
+% =====================================================================
+\documentclass[letterpaper]{article}
+\usepackage[submission]{aaai27}   % 收到录用后改为 \usepackage[final]{aaai27}
+\usepackage{times}
+\usepackage{helvet}
+\usepackage{courier}
+\usepackage[hyphens]{url}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\urlstyle{rm}
+\def\UrlFont{\rm}
+\frenchspacing
+\setlength{\pdfpagewidth}{8.5in}
+\setlength{\pdfpageheight}{11in}
+\graphicspath{{week1/analysis/}}
+\pdfinfo{
+/Title (Not Every Truth Is Enough: Decision-Certified Multi-Agent Collaboration under Strategic Omission)
+/Author (Anonymous Submission)
+}
+\setcounter{secnumdepth}{2}
+
+\title{Not Every Truth Is Enough: Decision-Certified Multi-Agent Collaboration under Strategic Omission}
+\author{Anonymous submission}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Multi-agent systems typically verify exchanged information to improve collaboration reliability, yet truthful reports may still fail to contain the information a decision requires. We study a semi-synthetic organizational decision game, TOG-IS, built from real open-source retail and marketing data: three LLM agents each hold one department's business metrics and disclose facts under either a shared organizational objective (cooperative condition) or departmental KPIs (self-interested condition). We design a truthfulness-controlled structured fact channel with evidence receipts to separate \emph{false statements} from \emph{selective omission}, and propose Omission-aware Decision Certificates (ODC): the protocol proactively verifies the facts that could still overturn the current action and, under a trusted data contract and valid-range assumptions, attaches a verifiable upper bound on organizational loss to every certified action. The evaluation covers strong single-agent coordinators, structured multi-agent deliberation, and six deterministic controllers, measuring true regret, certification coverage, verification cost, and bounded deviation gain. Across the preregistered three-seed replication ($n{=}720$ per cell): the four LLM coordinators show no significant quality differences while differing by more than $2\times$ in query cost (ETD ${\approx}7.8$ queries vs SAS ${\approx}16$, a 50\%+ reduction); deterministic certificate controllers consistently outperform all LLM methods at equal budget (Width-Cert mean regret 0.036 vs best LLM 0.045); LLM departments omit roughly half of decision-critical facts even under fully truthful disclosure; and selective disclosure raises regret only modestly and significantly only for individual coordinators (SAS-SC contrast C$-$A, Holm-adjusted $p{=}0.015$). Finally, relative to a neutral fixed-index truthful disclosure, selective disclosure nearly halves receiver regret (omission gap $-0.043$ to $-0.058$, 12/12 cells significant after Holm correction) --- every statement being true is far from being enough to decide.
+\end{abstract}
+
+\section{Introduction}
+\subsection{A Structural Problem That Actually Occurs}
+Organizational decisions depend on data scattered across departments, each of which sees only part of the whole: the growth team emphasizes conversion rates, the operations team emphasizes completed workload, and the data-governance team emphasizes compliance and field completeness. Every number each department reports can be \textbf{true} --- and the organization can still choose the wrong action.
+
+The distinction at the core of this paper is:
+\begin{equation}
+\text{factuality} \;\neq\; \text{disclosure sufficiency}.
+\end{equation}
+The first asks whether the stated facts are correct; the second asks whether unstated facts could still change the action that should be taken. When LLM agents play the role of departments holding private information, this distinction becomes urgent: an agent can tell the truth while strategically selecting which truths to tell. Remaining silent on decision-critical facts requires fabricating nothing.
+
+\subsection{From ``Everyone Agrees'' to ``No Unknown Fact Can Overturn the Decision''}
+Most multi-agent collaboration research sets the stopping condition at ``consensus reached'' or ``discussion converged.'' We advocate a stopping condition that can be machine-checked:
+\begin{quote}
+In every state still compatible with the valid evidence, the loss of the chosen action does not exceed $\varepsilon$.
+\end{quote}
+This condition relies on no LLM self-reported confidence, no LLM-as-judge, and no human annotation. When it holds, the system attaches a \textbf{decision-sufficiency certificate}: a loss upper bound that anyone can recompute. When it does not hold, the protocol keeps verifying the facts that ``could still overturn the current action'' --- because most missing facts, even if known, would not change the decision.
+
+\subsection{Research Questions}
+\begin{itemize}
+\item \textbf{RQ1:} When every disclosed fact is true, can selective disclosure still systematically increase organizational decision regret?
+\item \textbf{RQ2:} Can linguistic collaboration (longer discussion, structured objections, self-consistency sampling) substitute for a disclosure-sufficiency check at equal cost?
+\item \textbf{RQ3:} Is decision-relevant verification (multi-counterexample coverage queries) more effective than indiscriminate completion (uniform, max-width, single-counterexample)?
+\end{itemize}
+
+\subsection{Contributions}
+\begin{itemize}
+\item \textbf{C1: A truthfulness-fixed benchmark for strategic omission (TOG-IS).} Real business aggregate values, known organizational objectives, computable departmental utilities, controlled private views, fully automated verification of structured facts, paired interventions, and exact decision ground truth --- distinguishing ``the facts were wrong,'' ``the facts were not disclosed,'' and ``disclosed facts were not used correctly.''
+\item \textbf{C2: An omission-aware decision-certificate protocol (ODC).} A minimal governance protocol combining an evidence ledger, explicit uncertainty over undisclosed information, counterexample-driven supplementary verification, and an action-release condition. Its mathematical skeleton comes from robust decision-making and preference elicitation; we do not claim to invent these foundations.
+\item \textbf{C3: A decomposition of manipulation cost.} We simultaneously measure wrong decisions, extra verification burden, certification coverage, and bounded deviation gain, separating ``necessary information cost'' from ``redundancy caused by poor coordination.''
+\end{itemize}
+
+\section{Related Work}
+\textbf{Collective reasoning under distributed information.} HiddenBench \cite{li2026hiddenbench} studies collective reasoning, unexplored information, and premature consensus in multi-agent LLMs, and proposes structured communication protocols. We keep its ``premature consensus'' problem awareness but add computable departmental utilities, strictly truthful structured disclosure, priced supplementary verification, and executable decision certificates: the question is not whether agents can integrate hidden information, but whether the stopping condition of integration is verifiable.
+
+\textbf{Are multi-agent systems really stronger?} The Illusion of Multi-Agent Advantage \cite{jwalapuram2026illusion} shows that comparing multi-agent systems only against weak single agents leads to wrong conclusions. All of our main comparisons match permissions, available evidence, query cost, and token budget, and explicitly include strong single-agent baselines and a deterministic reference family.
+
+\textbf{Propagation of unreliable information.} When Truth Is Distributed \cite{yan2026truth} studies the propagation of false testimony in distributed fact recovery; its controlled framework ForesightSafety-TIDE is a close cousin of our fact channel. Our main experiment \textbf{forbids false facts from entering the shared fact channel}, narrowing the object of study to selective omission under truthful facts --- a mechanistic isolation of the ``unreliable information'' problem.
+
+\textbf{Failure taxonomies of multi-agent LLM systems.} Cemri et al.\ \cite{cemri2025fail} provide the first empirically grounded taxonomy of multi-agent LLM failures. We mechanize one specific failure mode --- information-integration failure --- into a controllable, auditable, and quantifiable business game.
+
+\textbf{Mathematical foundations.} Minimax regret and incremental utility elicitation \cite{wang2003,boutilier2006,braziunas2007} supply the mathematical skeleton of our certificates; mechanism design with selective verification \cite{fotakis2016} offers the related perspective of ``checking only critical reports.'' We claim no priority over these foundations; our novelty is a new instantiation of these ideas for LLM strategic-omission evaluation and governance.
+
+\textbf{Proactive statement on competing work.} We note that Hu and Miao \cite{hu2026truthful} have independently studied a problem close to ours in title (adaptive information procurement for exact decision certificates). Their work focuses on incentive-compatible mechanisms (payment design) when query costs are privately known; ours evaluates LLM departmental disclosure behavior under controlled motivation shifts and provides a governance protocol under a fixed-cost fact channel. The two are complementary. We do not claim priority over the broad concept of ``decision certificates''; our contribution lies in the evaluation of strategic omission under truthful facts and its governance analysis.
+
+\section{Task and Game: TOG-IS}
+\subsection{Data and Task Generation}
+Tasks derive from two open datasets: \textbf{Online Retail} (UK e-commerce transactions, mapped to three benefit-direction metric columns: growth / operations / governance) and \textbf{Bank Marketing} (Portuguese bank telemarketing, mapped identically). Each task generates $K{=}8$ candidate business groups from a data block; group $k$ carries three metrics $\boldsymbol z_k=(z_{k1},z_{k2},z_{k3})\in[0,1]^3$, flattened as $\boldsymbol z\in[0,1]^{24}$. The fixed split yields \textbf{240 formal test tasks} (a dev set is reserved for prompt tuning; dev tasks are protocol-barred from formal results).
+
+\subsection{Players, Actions, and Objectives}
+Three department agents $\mathcal N=\{1,2,3\}$ (growth / operations / governance). Department $i$ directly sees only its own column $\{z_{ki}\}_{k=1}^8$ --- data silos are enforced by session isolation and prompt-level permissions. The organization selects $h$ of the 8 groups ($h\in\{1,2\}$, $|\mathcal A_1|=8$, $|\mathcal A_2|=28$); the public weight $\boldsymbol w$ takes the six permutations of $(0.5,0.3,0.2)$. Organizational score
+\begin{equation}
+W(a;\boldsymbol z)=\frac{1}{h}\sum_{k} x_{ak}\sum_i w_i z_{ki}
+\end{equation}
+is affine in $\boldsymbol z$, i.e., $W(a;\boldsymbol z)=\beta_a+\boldsymbol\theta_a^\top\boldsymbol z$ (with $\beta_a=0$ in the main task), the key to exact interval regret bounds. Departmental KPI is $V_i(a;\boldsymbol z)$ and departmental reward is $U_i=(1-\rho)W+\rho V_i$.
+
+\subsection{Fact Channel and Evidence Receipts}
+Free text never becomes fact in the main experiment: all facts are obtained as structured query IDs (\texttt{q\_group\_department}) through an \textbf{evidence sidecar}, and every query returns a \textbf{receipt} binding the task-state hash and the value. Every query value appearing in a log must equal its receipt value --- this audit runs automatically after every trajectory; all 8,640 trajectories (3 seeds $\times$ 2,880) passed without a single violation. Queries are billed per independent fact; batched responses accumulate per-fact cost.
+
+\subsection{Three Disclosure Conditions}
+Under each (task, condition), the three departments each disclose exactly 2 facts of their own column (6 total), forming the initial evidence $E_0$:
+\begin{itemize}
+\item \textbf{C (cooperative, $\rho=0$):} LLM departments are asked to disclose the 2 facts ``most useful for the organizational decision.''
+\item \textbf{S (departmental, $\rho=1$):} LLM departments advance their own KPI within legality (true facts, exactly 2, own column); whether strategic omission emerges is a measured behavior, not an assumption.
+\item \textbf{A (scripted selective disclosure):} a model-independent script --- each department discloses its two highest-metric facts and recommends its own best action; fixed, interpretable, and blind to the global optimum.
+\end{itemize}
+For each (task, condition, seed), $E_0$ is generated once and shared by \textbf{all} receiving methods, ensuring we compare ``facing the same disclosure, how does each protocol complete and decide.'' Note that C/S differ from A in both disclosed content and recommendation mechanism; the contrast is not a pure causal effect of omission. We therefore additionally run a receipt-swap intervention (Section~6.6).
+
+\section{Omission-aware Decision Certificates (ODC)}
+\subsection{Evidence-Compatible States and Regret Bounds}
+Given receipt values of revealed facts, unrevealed facts keep their valid ranges $[\ell_j,u_j]$, inducing the evidence-compatible set $\mathcal Z$. For candidate action $a$ and competitor $b$, the pairwise worst-case advantage is attained at a vertex under box constraints (the objective is affine in $\boldsymbol z$) and computed in exact integer arithmetic. The regret upper bound of action $a$ is
+\begin{equation}
+\overline{\mathrm{Reg}}(a)=\max_{b\in\mathcal A}\ \mathrm{PW}(a,b),
+\end{equation}
+the selection rule takes the minimax-bound action with deterministic tie-breaking, and an action is \textbf{certified} when its bound $\le\varepsilon$ (valid boundary). Correctness relies on receipt authenticity (fact channel) and boundary validity (unknown values within ranges); we make no safety claims outside this class.
+
+\subsection{Multi-Counterexample Coverage Queries}
+Each step selects the unknown fact that simultaneously compresses the most not-yet-excluded counterexamples (multi-counterexample coverage score), rather than re-checking what departments already said. This heuristic shares the same certifier with three query baselines, swapping only the query selector (fixed-controller layer): single-counterexample (ODC-CS, worst competitor only), uniform random (Uniform-Cert), and max interval width (Width-Cert).
+
+\subsection{Proven Properties (validated on 1{,}000 random CPU instances)}
+\begin{enumerate}
+\item Conditional decision-loss guarantee: a certified action's true regret does not exceed $\varepsilon$;
+\item Monotonicity: new valid evidence never increases the minimum attainable regret;
+\item \textbf{Fact verification alone does not guarantee correct decisions} (there exist instances where all disclosed facts are true yet the disclosure set cannot support the optimal decision);
+\item Exact optimality after full legitimate disclosure;
+\item Organizational damage from strategic disclosure is bounded, but private gain need not vanish.
+\end{enumerate}
+
+\section{Experimental Design}
+\subsection{Ten Methods and Three Fairness Layers}
+\textbf{LLM coordination methods (4):} SAS-Tool (a strong single coordinator with read-only query tools and a deterministic scorer); SAS-SC (single coordinator with self-consistency; sample count fixed by budget); MAS-Deliberate (three departments exchange evidence and discuss; the coordinator decides further queries and the action); Exchange-then-Decide (ETD, a tool-constrained adaptation of HiddenBench's ``exchange--object--decide'' structure).
+
+\textbf{Deterministic references (6):} ODC-WC (our full query), ODC-CS, Uniform-Cert, Width-Cert, NoLLM-E2E (fully scripted departments, all-algorithm reference), and FullInfo (reads all 24 facts; an oracle for solvability checking, not an equal-information competitor).
+
+Fairness is enforced at three layers: end-to-end (same catalog, permissions, objective, $E_0$, resource caps); fixed-evidence (identical evidence sequences isolate acquisition from integration); fixed-controller (only the query selector changes).
+
+\subsection{Budget and Metrics}
+Unified query budget $B=24$ (including the 6 initial disclosed facts) with checkpoints at 6/12/18/24 under an anytime protocol. Token budget hard cap: 12{,}288 in / 1{,}536 out per trajectory, accumulated across calls, with circuit-breaking on exceedance. Primary metric: organizational regret (macro-averaged, stratified by dataset and condition). Secondary: certification coverage, query cost, fallback rate, and bounded deviation gain (M5, Section~6.5).
+
+\subsection{Models, Randomness, and Statistics}
+The main model is a locally deployed Qwen3-4B-Instruct-2507 (GGUF Q4\_K\_M, RTX 5060 8GB; offline inference --- zero API cost, GPU time still counted). Decode seeds are preregistered and frozen at $\{17, 29, 43\}$; all prompts were frozen after dev-set tuning (registry: preregistration config) and LLM methods repeat each (task $\times$ condition $\times$ method) per seed. Deterministic methods are not pseudo-replicated; they are evaluated separately per seed-generated $E_0$. Statistics: paired tests (same task, method, and seed) with Holm correction for multiple comparisons.
+
+\section{Results (seeds \{17, 29, 43\}, $n{=}720$ per cell)}
+\subsection{Main Table (budget $B{=}12$; LLM at natural stopping cost)}
+\begin{itemize}
+\item \textbf{The four LLM methods are quality-equivalent:} under condition A, mean regret SAS-Tool 0.0490 / SAS-SC 0.0454 / MAS 0.0541 / ETD 0.0498, with no significant pairwise differences; \textbf{cost structure differs enormously} --- SAS ${\approx}16$ queries, MAS ${\approx}9.7$, ETD ${\approx}7.8$ (50\%+ savings), and per-cell means are nearly identical across seeds. Multi-agent deliberation reaches similar quality with far fewer queries; this is the most robust finding of the study.
+\item \textbf{Deterministic controllers beat all LLM methods at $B{=}12$:} Width-Cert 0.0359, ODC-WC / NoLLM-E2E 0.0377, ODC-CS 0.0423, versus the best LLM 0.0454. In this 24-fact state space, structured querying still dominates on decision quality; the value of LLM methods lies in cost structure and (expected) generality, not quality on this benchmark. Uniform-Cert (0.0603) is significantly worse than every decision-relevant strategy --- supporting RQ3: \emph{what} you ask matters more than \emph{how much} you ask. These deterministic readings are nearly seed-invariant (e.g., Width-Cert under A is 0.0359 in all three seeds).
+\item \textbf{FullInfo oracle regret is 0}; task solvability verified.
+\end{itemize}
+
+\begin{figure}[t]
+\centering
+\IfFileExists{fig_regret_by_condition_final.png}{\includegraphics[width=\columnwidth]{fig_regret_by_condition_final.png}}{\fbox{\parbox[c][0.62\columnwidth][c]{\dimexpr\columnwidth-2\fboxsep-2\fboxrule\relax}{\centering Figure file: \texttt{fig\_regret\_by\_condition\_final.png}}}}
+\caption{Mean true regret by method $\times$ condition (95\% CI; three seeds, $n{=}720$ per cell).}
+\label{fig:regret}
+\end{figure}
+
+\subsection{Effect of Disclosure Condition}
+The ranking remains roughly A $\lesssim$ S $<$ C, directionally consistent with the seed-17 preview, but \textbf{the significance pattern has changed}:
+\begin{itemize}
+\item \textbf{ETD's C$-$A difference did not replicate.} It was the only uncorrected-significant contrast at seed 17 ($+0.0071$, $p{=}0.013$), but neither seed 29 ($p{=}0.37$) nor seed 43 ($p{=}0.22$) reproduces it; merged, $+0.0028$, $p{=}0.13$, not significant after Holm correction. The seed-17 ``significance'' was small-sample fluctuation; for ETD, ``cooperative disclosure is harmful'' must be reported as a directional trend only.
+\item \textbf{SAS-SC's C$-$A difference is significant in the merged statistics} ($+0.0068$, $t{=}3.46$, $p{=}0.0006$, Holm-adjusted $p{=}0.015$), direction-consistent per seed ($+0.0010/+0.0122/+0.0074$ at seeds 17/29/43, two of three individually significant). It is the only surviving LLM-side condition effect among all 27 tests --- single-coordinator methods are more vulnerable to cooperatively disclosed content.
+\item \textbf{On the deterministic side, Width-Cert's S$-$C difference is significant} ($-0.0026$, $p{=}0.0007$, Holm-adjusted $p{=}0.019$, $n{=}720$): regret under S (departmental self-interest) is lower than under C (cooperative), consistent with the direction of the disclosure-behavior evidence M2 in Section~6.5.
+\item ETD's S$-$A reaches $p{=}0.049$ uncorrected but does not survive Holm. Cost structure is condition-robust (MAS ${\sim}9.5$, ETD ${\sim}7.7$, SAS ${\sim}16$): condition effects, where present, live on the quality side, not the behavior side.
+\end{itemize}
+
+\subsection{The Anytime View}
+Deterministic regret decreases monotonically with budget; LLM natural-stopping points lie \textbf{above} the curves: at comparable cost, LLM methods systematically incur more regret than the curve readings of Width-Cert/ODC-WC; MAS has the lowest median regret but a higher mean --- its distribution shifts left with a fatter tail (when premature consensus anchors on the wrong option, it loses bigger).
+
+\begin{figure}[t]
+\centering
+\IfFileExists{fig_anytime_final.png}{\includegraphics[width=0.95\columnwidth]{fig_anytime_final.png}}{\fbox{\parbox[c][0.62\columnwidth][c]{\dimexpr\columnwidth-2\fboxsep-2\fboxrule\relax}{\centering Figure file: \texttt{fig\_anytime\_final.png}}}}
+\caption{Anytime curves (deterministic, condition A) with LLM natural-stopping points (three seeds).}
+\label{fig:anytime}
+\end{figure}
+
+\subsection{Certification Coverage and the $\varepsilon$-Calibration Sweep}
+At the preregistered $\varepsilon{=}0.05$, $B{=}12$ certification tops out at 2.8\% --- the certificate almost never releases. We re-ran all deterministic trajectories at 7 $\varepsilon$ values (0.005--0.20) $\times$ 3 certifier-family methods $\times$ 240 tasks $\times$ 3 conditions $\times$ 3 seeds (181{,}440 rows):
+\begin{enumerate}
+\item \textbf{The guarantee holds empirically:} across 181{,}440 rows, the number of certified actions whose true regret exceeds $\varepsilon$ is \textbf{zero} --- Proposition 1 validated at empirical scale.
+\item \textbf{Budget, not threshold, is the binding constraint:} at $B{=}24$ (complete information) certification is 100\% at every $\varepsilon$ (bounds collapse to zero); at $B{=}12$, even $\varepsilon{=}0.20$ certifies only 11\%--22\%. At half budget, what blocks release is residual uncertainty itself.
+\item \textbf{Bounds are conservative:} certified actions' mean true regret sits far below $\varepsilon$ (e.g., 0.035 at $\varepsilon{=}0.10$).
+\end{enumerate}
+Implication: at this task scale, ODC's practical function is not fast release but \textbf{steering verification budget toward unknown facts that can still change the action}. Together with Uniform-Cert's significantly worse performance (Section~6.1), this answers RQ3 affirmatively --- and honestly bounds C2: the ``release'' function needs larger fact spaces to become visible.
+
+\subsection{Departmental Disclosure Behavior: Behavioral Evidence of Omission}
+Measuring the 6{,}480 real departmental disclosures (240 tasks $\times$ 3 conditions $\times$ 3 seeds):
+\begin{itemize}
+\item \textbf{M2 (core evidence):} the departmental facts of the organizationally optimal group appear in $E_0$ only A 0.499 / C 0.457 / S 0.476 of the time --- even when every disclosure is true and departments are asked to cooperate ``most usefully,'' more than half of the decision-critical facts are undisclosed. The direction C $<$ A matches the regret trend in Section~6.2, offering a mechanistic clue: \textbf{facts LLMs consider ``useful'' are not the facts that are decision-relevant.}
+\item \textbf{M1:} departments disclose their own top-KPI group ${\ge}98\%$ of the time in all conditions --- self-interest does not change ``showcasing'' behavior; omission concentrates in lower ranks, not at the top.
+\item \textbf{M3 / M4:} Jaccard overlap between LLM and scripted-A $E_0$ is 0.70--0.72 --- LLMs mostly follow a ``pick the top two'' pattern with ${\sim}30\%$ deviation; C has zero fallback generations, S falls back 5.9\% (under the S prompt the model more often produces illegal disclosures --- self-interest increases ``strategic expression'' attempts, which we analyze as behavioral evidence of strategic omission).
+\item \textbf{M5 (deviation gain, the fourth measurement of C3):} define department $i$'s deviation gain as $\Delta_i = V_i(\hat a) - V_i(a^*)$ --- the change the chosen action brings to the department's KPI relative to the organizationally optimal action (theoretically bounded by 1) --- and the trajectory-level gain as $\max_i \Delta_i$. Mean deviation gain is small and nearly identical across conditions (A $+0.0035$ / C $+0.0034$ / S $+0.0036$; no condition contrast survives Holm correction); in 67--70\% of trajectories at least one department benefits from the deviation, and deviation gain correlates significantly with organizational regret ($r{=}0.444$, $n{=}8{,}640$). \textbf{Private dividends are real but bounded, and are not amplified by strategic-disclosure conditions} --- they look like a by-product of decision errors rather than a payoff to omission.
+\end{itemize}
+
+\subsection{Receipt-Swap Intervention: The Causal Read}
+Following the preregistered protocol, we freeze the receiver, the true state, the fact count, and the format, and swap only the disclosed fact set. Deterministic receivers satisfy the freeze by construction (their decisions ignore recommendations; prompts are constant), so the three-condition contrast in the deterministic results \emph{is} this intervention. Across 3 methods $\times$ 3 contrasts (9 paired tests, three seeds merged, $n{=}720$ per test), all effects are ${\le}0.003$ in magnitude; \textbf{only Width-Cert's S$-$C contrast survives Holm correction} ($-0.0026$, adjusted $p{=}0.007$) --- the same contrast significant in Section~6.2 --- while the remaining eight are non-significant. Causal reading: swapping the disclosed fact set alone moves a deterministic receiver's decision only marginally, with the single exception of the S-versus-C content difference under max-width querying; if the LLM-side condition trend is real, it must act through the \textbf{interaction between disclosure content and LLM reasoning}. This narrows the space of mechanistic explanations. The LLM-receiver version of the swap experiment has been completed; see Section~6.7.
+
+\begin{figure}[t]
+\centering
+\IfFileExists{fig_tog_llm.png}{\includegraphics[width=\columnwidth]{fig_tog_llm.png}}{\fbox{\parbox[c][0.62\columnwidth][c]{\dimexpr\columnwidth-2\fboxsep-2\fboxrule\relax}{\centering Figure file: \texttt{fig\_tog\_llm.png}}}}
+\caption{The LLM-side omission gap: paired regret difference Reg(selective $E_0$) $-$ Reg(neutral $E_0$) by method $\times$ condition (95\% CI; $n{=}720$ per cell; all 12 cells negative, Holm-adjusted $p\,{\le}\,1.9\times10^{-42}$).}
+\end{figure}
+
+\subsection{The LLM-Side Omission Gap: The Neutral-Disclosure Arm}
+The omission gap required by the preregistration (Protocol 16.3) is closed on the LLM receiver side: pairing on (task, method, seed), we compare the receiver's regret when facing the selective $E_0$ (the three-condition content of the main batch) versus a neutral $E_0$ (a fixed set of the first two fact indices per department, independent of the seed), $\mathrm{TOG} = \mathrm{Reg}(E_{\mathrm{selective}}) - \mathrm{Reg}(E_{\mathrm{neutral}})$, $n{=}720$ per cell. All 2{,}880 neutral-arm trajectories (4 methods $\times$ 3 seeds $\times$ 240 tasks) pass the audit with zero fallbacks.
+\begin{itemize}
+\item \textbf{All 12 TOG values are negative and highly significant:} $-0.043$ to $-0.058$ ($|t| = 14.6$--$19.2$, Holm-adjusted $p \le 1.9\times10^{-42}$), direction-consistent across all three seeds.
+\item \textbf{Magnitude:} the neutral arm nearly doubles LLM regret --- Reg(neutral) 0.095--0.108 vs Reg(selective) 0.045--0.056. The inter-condition differences of Section~6.2 (${\sim}0.005$) are only about $1/10$ of the ``selective vs neutral'' gap: \textbf{whether the disclosed content is decision-relevant matters far more than which selective strategy produced it}.
+\item \textbf{Mechanistic placement:} against the deterministic-receiver swap effect of ${\le}0.003$ (Section~6.6), the same manipulation is an order of magnitude larger on the LLM receiver --- confirming that condition effects act through the interaction between disclosure content and LLM reasoning; it also shows that under truthfulness fixed at 1, the largest single-factor source of regret is not strategic motive but the \textbf{informational poverty of the neutral fixed disclosure itself}.
+\item \textbf{Convergent with the negative omission tax} (Section~6.8): at an identical fact count (6 each), the selective disclosure set is both cheaper (0.80--0.84 fewer facts to complete) and lower-regret than the neutral fixed index --- ``every statement true'' is far from ``enough to decide.'' This is the core experimental evidence for the paper's title claim.
+\end{itemize}
+
+\subsection{Minimum Certificate Completion Cost and the Omission Tax}
+We compute, per (task, condition, seed), the theoretical minimum number of additional facts required to certify an action (exact MILP via HiGHS; 2{,}880 cells across three seeds, 100\% optimally solved; $\varepsilon{=}0.05$):
+\begin{itemize}
+\item Certifying \emph{some} certifiable action costs C* ${\approx}9.9$ further facts on average; certifying the \emph{true optimal} action costs ${\approx}10.0$--$10.2$. Certificates are intrinsically expensive at this $\varepsilon$ ($6+10\approx16$ of the 24 budget), explaining the 2.8\% $B{=}12$ certification rate.
+\item \textbf{The omission tax is negative and highly significant:} all three disclosure conditions are 0.80--0.84 facts \emph{cheaper} to certify than neutral frozen-index disclosure ($|t|>25$, $n{=}720$ per condition, paired). Strategic ``showcase'' disclosure leaks more decision-relevant information than neutral indexing --- counterintuitive but coherent, and we discuss it head-on.
+\item \textbf{CostRatio} (ODC-WC actual spend / theoretical minimum) ${\approx}1.17$--$1.18$: the multi-counterexample coverage query spends only ${\sim}18\%$ above the lower bound --- it asks nearly optimally.
+\end{itemize}
+
+\subsection{Stratified Robustness}
+Stratifying by dataset (Retail/Bank) and action size ($h{=}1$ vs $h{=}2$): LLM mean regret is 0.0388 at $h{=}1$ versus 0.0604 at $h{=}2$ (action space 8 vs 28), consistent with earlier observations; all three qualitative conclusions (deterministic controllers dominate on quality, multi-agent saves queries, condition differences are small) hold in both datasets. Meanwhile, the regret ranking of the four LLM methods is \textbf{unstable across all 4 strata $\times$ 3 conditions} --- ranking shuffling is independent evidence that quality differences among LLM methods are noise.
+
+\subsection{Robustness Under Stress Conditions (descriptive)}
+Following the preregistered four stress conditions (duplicate facts, action-ID permutation, two-department coalition disclosure, sequential authorization denial) $\times$ 8 tasks per domain $\times$ 2 receivers (SAS-Tool, ODC-WC) $\times$ 1 random configuration (seed 17), we run 128 descriptive trajectories. Across all 128 there are zero fallbacks, zero illegal actions, and zero audit failures: the receipt channel is idempotent under duplicated facts, and under sequential authorization denial (the first 3 query requests refused at no budget cost) both receivers reroute and complete their decisions. ODC-WC's per-task regret is exactly invariant under action-ID permutation (16/16), while SAS-Tool's regret changes under relabeling in 10/16 tasks --- LLM coordinators exhibit label sensitivity. For the growth+operations coalition (sharing both departments' private information, unable to see the governance department's hidden data; threat capability labeled separately), all 16 E0 sets are LLM-generated with zero fallbacks and receiver regret stays near the A baseline (SAS-Tool 0.0492 vs 0.0449). All shifts are small-scale descriptive readings; they enter no confirmatory test family.
+
+\section{Discussion and Limitations}
+\begin{enumerate}
+\item \textbf{External validity of the omission gap:} the neutral fixed-index disclosure is one specific uninformative-but-truthful baseline; the 2$\times$ regret amplification it induces (Section~6.7) may not transfer to other neutral baselines, and we do not claim it as a universal constant.
+\item \textbf{Small state space:} 24 facts let deterministic methods dominate; LLM comparative advantages are expected at larger, more heterogeneous fact spaces (future work).
+\item \textbf{4B local model:} sensitivity to model scale is untested (small-scale transfer tests are preregistered).
+\item \textbf{Condition contrasts are not pure causation}; the receipt-swap intervention (Section~6.6) localizes the causal component for deterministic receivers.
+\item \textbf{Semi-synthetic setting:} departments are modeling roles; we do not claim the source organizations used these departments, and we report no causal ROI or real future profit.
+\item \textbf{The guarantee is conditional:} certificates assume receipt authenticity and valid ranges; we make no safety claims beyond this class.
+\end{enumerate}
+
+\section{Conclusion}
+Truth is not sufficiency. On a truthfulness-controlled fact channel, selective disclosure lets organizations make suboptimal decisions while every sentence remains literally true; linguistic negotiation reduces query cost but cannot replace the check of whether undisclosed facts could still overturn the decision. Decision-sufficiency certificates rewrite the stopping condition of collaboration from consensus to a recomputable loss bound, and convert the cost of manipulation into a measurable verification burden. Three-seed statistics support this qualitative picture: multi-agent saves queries, deterministic verifiers dominate on quality, and literal truthfulness still falls short of decision sufficiency --- while the harm from disclosure conditions, though real, is modest and uneven across coordinators.
+
+\bibliographystyle{plain}
+\begin{thebibliography}{9}
+\bibitem{li2026hiddenbench} Li, Y., Naito, A., \& Shirado, H. Systematic Failures in Collective Reasoning under Distributed Information in Multi-Agent LLMs (HiddenBench). \emph{ICML 2026}; arXiv:2505.11556.
+\bibitem{jwalapuram2026illusion} Jwalapuram, P., Lin, H., Li, C., Jiao, F., Wang, S., et al. The Illusion of Multi-Agent Advantage. arXiv:2606.13003, 2026.
+\bibitem{yan2026truth} Yan, C., Yue, Z., Zhao, F., Lin, E., Jia, L., Tong, H., et al. When Truth Is Distributed: Misinformation Derails Collective Fact Recovery in LLM-Based Multi-Agent Systems. arXiv:2608.03421, 2026.
+\bibitem{cemri2025fail} Cemri, M., Pan, M. Z., Yang, S., et al. Why Do Multi-Agent LLM Systems Fail? \emph{NeurIPS 2025} Datasets and Benchmarks Track.
+\bibitem{wang2003} Wang, T., \& Boutilier, C. Incremental Utility Elicitation with the Minimax Regret Decision Criterion. \emph{IJCAI}, 2003.
+\bibitem{boutilier2006} Boutilier, C., Patrascu, R., Poupart, P., \& Schuurmans, D. Constraint-Based Optimization and Utility Elicitation Using the Minimax Decision Criterion. \emph{Artificial Intelligence}, 2006.
+\bibitem{braziunas2007} Braziunas, D., \& Boutilier, C. Minimax Regret Based Elicitation of Generalized Additive Utilities. \emph{UAI}, 2007.
+\bibitem{fotakis2016} Fotakis, D., Tzamos, C., \& Zampetakis, M. Mechanism Design with Selective Verification. \emph{EC}, 2016.
+\bibitem{hu2026truthful} Hu, J., \& Miao, C. Truthful Adaptive Information Procurement for Exact Decision Certificates. SSRN 7529186.
+\end{thebibliography}
+
+\end{document}

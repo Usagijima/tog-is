@@ -1,0 +1,67 @@
+{
+  "seed": 17,
+  "ratios": [
+    0.6,
+    0.2,
+    0.2
+  ],
+  "test_blocks_per_dataset": 10,
+  "retail_dev": {
+    "rows": 322461,
+    "groups": 3588,
+    "file": "retail_dev.csv.gz"
+  },
+  "retail_valid": {
+    "rows": 113384,
+    "groups": 1196,
+    "file": "retail_valid.csv.gz"
+  },
+  "retail_test": {
+    "rows": 103547,
+    "groups": 1197,
+    "file": "retail_test.csv.gz"
+  },
+  "retail_test_blocks": {
+    "0": 120,
+    "1": 120,
+    "2": 120,
+    "3": 120,
+    "4": 120,
+    "5": 120,
+    "6": 120,
+    "7": 119,
+    "8": 119,
+    "9": 119
+  },
+  "bank_dev": {
+    "rows": 27126,
+    "groups": 27126,
+    "file": "bank_dev.csv.gz"
+  },
+  "bank_valid": {
+    "rows": 9042,
+    "groups": 9042,
+    "file": "bank_valid.csv.gz"
+  },
+  "bank_test": {
+    "rows": 9043,
+    "groups": 9043,
+    "file": "bank_test.csv.gz"
+  },
+  "bank_test_blocks": {
+    "0": 905,
+    "1": 905,
+    "2": 905,
+    "3": 904,
+    "4": 904,
+    "5": 904,
+    "6": 904,
+    "7": 904,
+    "8": 904,
+    "9": 904
+  },
+  "input_files": {
+    "retail_clean.csv.gz": "d55c4368dd4dac2bb063406555b77428f0735577de37186edbf962d3743c61b2",
+    "bank_full_clean.csv.gz": "b46c3e5f92a835fa8f9277d3d4bd9f1f6659a02a8af69e6f4a57aacc501d7a42"
+  }
+}

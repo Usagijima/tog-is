@@ -1,0 +1,34 @@
+{
+  "seed": 17,
+  "min_rows_per_cohort": 30,
+  "quantization": 0.0001,
+  "retail_price_bands_pence": [
+    0,
+    125.0,
+    208.0,
+    413.0,
+    1000000000000
+  ],
+  "bank_duration_scale_sD": 257.1455798864558,
+  "bank_job_top4": [
+    "blue-collar",
+    "management",
+    "technician",
+    "admin."
+  ],
+  "bank_balance_bands": [
+    -6848.0,
+    68.0,
+    445.0,
+    1414.0,
+    102128.0
+  ],
+  "retail_scale": 50879.04882565873,
+  "retail_blocks_used": 10,
+  "retail_fallback_blocks": 0,
+  "retail_unconstructable_blocks": 0,
+  "bank_scale": 257.1455798864558,
+  "bank_blocks_used": 10,
+  "bank_fallback_blocks": 0,
+  "bank_unconstructable_blocks": 0
+}
